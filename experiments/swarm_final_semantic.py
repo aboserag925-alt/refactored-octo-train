@@ -226,11 +226,17 @@ class ProviderRouter:
 # Generated-code safety checks
 # =========================================================
 
-BANNED_MODULES = {"subprocess", "ctypes", "pty"}
+BANNED_MODULES = {"subprocess", "ctypes", "pty", "importlib", "socket", "multiprocessing"}
 BANNED_CALLS = {
     "eval", "exec", "compile", "__import__", "os.system", "os.popen",
     "os.remove", "os.rmdir", "os.unlink", "shutil.rmtree",
 }
+BANNED_CALLS |= {
+    "getattr", "setattr", "globals", "vars", "os.execv", "os.execl",
+    "os.spawnl", "os.rename", "os.replace", "os.kill", "shutil.move",
+    "shutil.copy",
+}
+BANNED_CALL_PREFIXES = ("os.spawn", "os.exec")
 BANNED_FROM = {
     "os": {"system", "popen", "remove", "rmdir", "unlink"},
     "shutil": {"rmtree"},
@@ -281,20 +287,25 @@ def check_code(code: str) -> Optional[str]:
         if not isinstance(node, ast.Call):
             continue
         name = _call_name(node.func)
-        if name in BANNED_CALLS or (name and name.split(".")[0] in bad_names):
+        if name in BANNED_CALLS or name.startswith(BANNED_CALL_PREFIXES) or (
+            name and name.split(".")[0] in bad_names
+        ):
             errors.append(f"blocked call: {name}")
         if isinstance(node.func, ast.Attribute) and node.func.attr in BANNED_METHODS:
             errors.append(f"blocked method: {node.func.attr}")
-        if name == "open":
-            mode_node = node.args[1] if len(node.args) > 1 else next(
+        is_method_open = isinstance(node.func, ast.Attribute) and node.func.attr == "open"
+        if name == "open" or is_method_open:
+            # open(path, mode) يقرأ الوسيط الثاني، و Path(p).open(mode) يقرأ الأول.
+            pos = 0 if is_method_open else 1
+            mode_node = node.args[pos] if len(node.args) > pos else next(
                 (item.value for item in node.keywords if item.arg == "mode"), None
             )
-            if (
+            if mode_node is not None and not (
                 isinstance(mode_node, ast.Constant)
                 and isinstance(mode_node.value, str)
-                and set("wax+") & set(mode_node.value)
+                and not set("wax+") & set(mode_node.value)
             ):
-                errors.append("blocked: open() for writing")
+                errors.append("blocked: open() for writing or non-constant mode")
 
     return "; ".join(dict.fromkeys(errors)) or None
 
@@ -1025,7 +1036,7 @@ class Agent:
 class Swarm:
     def __init__(
         self,
-        workspace: Path | str,
+        workspace: Path | str = "swarm_final_workspace",
         agents: tuple[str, ...] = ("Architect", "Researcher", "Coder", "Tester", "Evolver"),
         mode: Optional[str] = None,
     ):
@@ -1095,8 +1106,24 @@ class Swarm:
         code = extract_code(output)
         problem = check_code(code)
         if problem:
+            self.results.append({
+                "task": task,
+                "status": f"rejected: {problem}",
+                "tool": "",
+                "output": "",
+                "route": "agent",
+                "confidence": decision.confidence,
+            })
             return {"ok": False, "error": problem}
         if "Tester" not in self.agents:
+            self.results.append({
+                "task": task,
+                "status": "rejected: no Tester",
+                "tool": "",
+                "output": "",
+                "route": "agent",
+                "confidence": decision.confidence,
+            })
             return {"ok": False, "error": "no Tester agent: generated code is not run without review"}
         review = self.step("Tester", "review", f"Task: {task}\nCode:\n{code}")
         if not review.strip().upper().startswith("PASS"):
