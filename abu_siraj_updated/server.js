@@ -4,6 +4,7 @@ const http = require("http"), fs = require("fs"), path = require("path"), crypto
 const { ToolManager } = require("./tools/ToolManager");
 const { registerBuiltinTools } = require("./tools/registerBuiltinTools");
 const { checkToolManagerHealth } = require("./toolmanager-health");
+const { createMemoryStore } = require("./tools/memoryStore");
 const ROOT = __dirname, PUBLIC = path.join(ROOT, "public"), DATA = path.join(ROOT, "data");
 
 // قراءة ملف .env
@@ -115,7 +116,8 @@ function serveStatic(raw, res) {
 }
 
 // ---------- ذاكرة طويلة المدى ----------
-const getNotes = () => readJson("notes.json", []);
+const memory = createMemoryStore(path.join(DATA, "notes.json"));
+const getNotes = () => memory.list();
 function buildPrompt() {
   const notes = getNotes().slice(-40).map(n => `#${n.id}: ${n.text}`).join("\n") || "(لا يوجد)";
   return `أنت "أبو سراج"، الإيجنت الشخصي لسراج. ذكي ومباشر وعملي، ولست شات بوت: أنت بتنفّذ.
@@ -214,11 +216,12 @@ const TOOLS = {
       if (/html/i.test(r.headers.get("content-type") || "")) t = t.replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ");
       return `HTTP ${r.status}\n` + t.replace(/\s+/g, " ").trim().slice(0, 12000);
     } },
-  remember: { risky: false, desc: "احفظ ملاحظة ثابتة ومفيدة في ذاكرتك الطويلة.", params: { text: { type: "string" } }, req: ["text"],
-    run: async a => { const t = String(a.text || "").trim().slice(0, 500); if (!t) throw new Error("نص فارغ."); const n = getNotes(); const id = (n.at(-1)?.id || 0) + 1; writeJson("notes.json", [...n, { id, text: t, ts: Date.now() }].slice(-100)); return `اتحفظت ملاحظة #${id}`; } },
-  recall: { risky: false, desc: "اعرض كل الملاحظات المحفوظة.", params: {}, run: async () => getNotes().map(n => `#${n.id}: ${n.text}`).join("\n") || "(لا يوجد)" },
+  remember: { risky: false, desc: "احفظ ملاحظة ثابتة ومفيدة في ذاكرتك الطويلة (حتى 500 حرف). لو نفس الملاحظة موجودة مش بتتكرر.", params: { text: { type: "string", description: "نص الملاحظة" }, tag: { type: "string", description: "وسم قصير اختياري (حتى 30 حرف) لتصنيف الملاحظة" } }, req: ["text"],
+    run: async a => { const r = memory.add({ text: a.text, tag: a.tag }); return r.duplicate ? `الملاحظة موجودة بالفعل #${r.note.id}` : `اتحفظت ملاحظة #${r.note.id}`; } },
+  recall: { risky: false, desc: "ابحث في الملاحظات المحفوظة بكلمات مفتاحية (بحث عربي بدون حساسية للهمزات والتشكيل). من غير query بترجّع الأحدث.", params: { query: { type: "string", description: "كلمات البحث، اختياري" }, tag: { type: "string", description: "اقتصر على وسم معين، اختياري" }, limit: { type: "number", description: "عدد النتائج، الافتراضي 10 والأقصى 50" } },
+    run: async a => memory.search({ query: a.query, tag: a.tag, limit: a.limit }).map(n => `#${n.id}: ${n.text}${n.tag ? ` [${n.tag}]` : ""}`).join("\n") || "(لا يوجد)" },
   forget: { risky: false, desc: "امسح ملاحظة برقمها.", params: { id: { type: "number" } }, req: ["id"],
-    run: async a => { writeJson("notes.json", getNotes().filter(n => n.id !== Number(a.id))); return "اتمسحت."; } },
+    run: async a => memory.remove(a.id) ? "اتمسحت." : "مفيش ملاحظة بالرقم ده." },
   gmail_search: { risky: false, taints: true, get enabled() { return gmailConnected(); }, desc: "ابحث في إيميلات سراج (قراءة فقط) بصيغة بحث جيميل، مثال: is:unread newer_than:2d.", params: { query: { type: "string" }, max: { type: "number", description: "حتى 20" } }, req: ["query"],
     run: async a => {
       const n = Math.min(Math.max(Number(a.max) || 10, 1), 20);
