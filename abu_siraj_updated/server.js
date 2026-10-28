@@ -1,6 +1,9 @@
 "use strict";
 // أبو سراج V2.0 — إيجنت بأدوات، بدون أي مكتبات خارجية، يشتغل بـ Node 20+ فقط.
 const http = require("http"), fs = require("fs"), path = require("path"), crypto = require("crypto");
+const { ToolManager } = require("./tools/ToolManager");
+const { registerBuiltinTools } = require("./tools/registerBuiltinTools");
+const { checkToolManagerHealth } = require("./toolmanager-health");
 const ROOT = __dirname, PUBLIC = path.join(ROOT, "public"), DATA = path.join(ROOT, "data");
 
 // قراءة ملف .env
@@ -22,8 +25,10 @@ const HAS_KEY = /^sk-/.test(E.OPENAI_API_KEY || "");
 const MAX_HISTORY = 20;
 const SHELL = E.ENABLE_SHELL === "1";
 const MAX_STEPS = Number(E.MAX_STEPS) || 10;
-const WS = path.join(ROOT, "workspace");
+const WS = path.resolve(E.WORKSPACE_ROOT || path.join(ROOT, "workspace"));
 fs.mkdirSync(WS, { recursive: true });
+const toolManager = registerBuiltinTools(new ToolManager());
+const toolContext = (extra = {}) => ({ workspaceRoot: WS, ...extra });
 const GID = E.GOOGLE_CLIENT_ID || "", GSECRET = E.GOOGLE_CLIENT_SECRET || "";
 const PUBLIC_URL = (E.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
 const SECURE = PUBLIC_URL.startsWith("https") ? "; Secure" : "";
@@ -182,12 +187,24 @@ const findPart = (p, type) => { if (p.mimeType === type && p.body?.data) return 
 const TOOLS = {
   list_files: { risky: false, desc: "اعرض الملفات والمجلدات داخل workspace.", params: { path: { type: "string", description: "مسار نسبي، الافتراضي الجذر" } },
     run: async a => { const d = safePath(a.path); return fs.readdirSync(d, { withFileTypes: true }).map(e => (e.isDirectory() ? e.name + "/" : e.name)).join("\n") || "(فارغ)"; } },
-  read_file: { risky: false, desc: "اقرأ ملف نصي من workspace (حتى 20KB).", params: { path: { type: "string" } }, req: ["path"],
-    run: async a => fs.readFileSync(safePath(a.path), "utf8").slice(0, 20000) },
+  read_file: { risky: false, desc: "اقرأ ملف نصي من workspace.", params: { path: { type: "string" } }, req: ["path"],
+    run: async a => {
+      const r = await toolManager.execute("read_file", a, toolContext());
+      if (!r.ok) throw new Error(r.error || r.code || "read_file failed");
+      return r.data.content.slice(0, 20000);
+    } },
   write_file: { risky: true, desc: "اكتب أو استبدل ملف نصي داخل workspace. يحتاج موافقة.", params: { path: { type: "string" }, content: { type: "string" } }, req: ["path", "content"],
-    check: a => { safePath(a.path); if (typeof a.content !== "string" || a.content.length > 200000) throw new Error("المحتوى لازم يكون نص أقل من 200KB."); },
-    summary: a => `كتابة ملف: ${a.path}\n(${a.content.length} حرف${fs.existsSync(safePath(a.path)) ? "، هيستبدل ملف موجود" : ""})\n\n${a.content.slice(0, 400)}${a.content.length > 400 ? "…" : ""}`,
-    run: async a => { const f = safePath(a.path); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, a.content); return `اتكتب ${a.content.length} حرف في ${a.path}`; } },
+    check: a => {
+      const t = toolManager.get("write_file"), v = t.validateInput?.(a);
+      if (v === false || v?.ok === false) throw new Error(v?.error || "مدخلات الكتابة غير صالحة.");
+      safePath(a.path);
+    },
+    summary: a => `كتابة ملف: ${a.path}\n(${Buffer.byteLength(a.content || "", "utf8")} بايت${fs.existsSync(safePath(a.path)) ? "، هيستبدل ملف موجود" : ""})\n\n${String(a.content || "").slice(0, 400)}${String(a.content || "").length > 400 ? "…" : ""}`,
+    run: async a => {
+      const r = await toolManager.execute("write_file", a, toolContext({ approved: true }));
+      if (!r.ok) throw new Error(r.error || r.code || "write_file failed");
+      return `اتكتب ${r.data.size} بايت في ${r.data.path}`;
+    } },
   fetch_url: { risky: false, desc: "اقرأ نص صفحة ويب عامة (قراءة فقط). بعد قراءة بريد بتحتاج موافقة.", params: { url: { type: "string" } }, req: ["url"],
     check: a => { new URL(a.url); }, summary: a => `فتح رابط (بعد قراءة بريد، ممكن يسرّب بيانات):\n${a.url}`,
     run: async a => {
@@ -320,7 +337,16 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(302, { Location: "/" }); return res.end();
     }
     if (!p.startsWith("/api/")) return serveStatic(p, res);
-    if (p === "/api/health" || p === "/health") return reply(res, 200, { status: "online", ok: true, name: "أبو سراج", version: "2.1.1", chat_ready: HAS_KEY, shell: SHELL });
+    if (p === "/api/health" || p === "/health") {
+      const health = await checkToolManagerHealth(toolManager, WS);
+      return reply(res, health.ok ? 200 : 503, {
+        status: health.ok ? "online" : "degraded",
+        ok: health.ok,
+        toolManager: Object.values(health.tools).every(t => t.ok),
+        tools: Object.fromEntries(Object.entries(health.tools).map(([name, t]) => [name, t.ok])),
+        workspace: health.workspace.ok
+      });
+    }
 
     if (p === "/api/login" && req.method === "POST") {
       if (limited("login:" + ip, 5, 15 * 60e3)) return reply(res, 429, { error: "محاولات كتير. جرّب بعد 15 دقيقة." });

@@ -1,0 +1,31 @@
+name: Abu Siraj v3 tests
+
+on:
+  pull_request:
+    paths:
+      - "abu_siraj_updated/**"
+      - ".github/workflows/abu-siraj-v3-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "abu_siraj_updated/**"
+      - ".github/workflows/abu-siraj-v3-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: abu_siraj_updated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: abu_siraj_updated/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: node -c server.js
+      - run: docker build -t abu-siraj-v3:test .
+        working-directory: abu_siraj_updated

@@ -4,6 +4,9 @@
   "private": true,
   "description": "أبو سراج — إيجنت شخصي بالعربية بأدوات وحلقة تنفيذ وموافقة قبل أي تغيير",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
   "engines": { "node": ">=20" }
 }

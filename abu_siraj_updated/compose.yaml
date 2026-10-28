@@ -1,0 +1,18 @@
+services:
+  abu-siraj:
+    build: .
+    container_name: abu-siraj-v3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      WORKSPACE_ROOT: /app/workspace
+    env_file:
+      - .env
+    volumes:
+      - ./workspace:/app/workspace
+    security_opt:
+      - no-new-privileges:true
