@@ -5,7 +5,7 @@
   GEMINI_API_KEY, GEMINI_MODEL (افتراضي gemini-2.0-flash - راجع الاسم الحالي)
   META_API_KEY أو TOGETHER_API_KEY (عبر together.ai)
   META_MODEL, META_BASE_URL (لتغيير نموذج Llama أو المزود)
-  SWARM_AUTORUN=1  لتشغيل الأدوات المكتوبة تلقائيا بدون سؤال (غير مفضل)
+  SWARM_AUTORUN_I_UNDERSTAND_THE_RISK=yes  يلغي سؤال y/n قبل التشغيل (خطر، انظر SWARM_SECURITY_AR.md)
 """
 import ast
 import json
@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 
 import requests
+
+from swarm_security import autorun_enabled, check_code
 
 
 # ---------- أدوات صغيرة ----------
@@ -48,21 +50,24 @@ ROLES = {
 # ---------- النماذج ----------
 def _mock(kind):
     if kind == "code":
-        return ("```python\n# generated in MOCK mode\ndef run():\n    return 'mock tool is working'\n\n"
+        return ("```python\n# generated in MOCK mode (unverified)\ndef run():\n    return 'mock tool is working'\n\n"
                 "if __name__ == '__main__':\n    print(run())\n```")
     return {
-        "plan": "1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
-        "review": "PASS\nMock review: syntax and safety patterns checked only.",
-        "evolve": "Verify output before answering.\nKeep answers short.\nReuse existing tools when possible.",
-    }.get(kind, "Mock notes: prefer the standard library first.")
+        "plan": "[MOCK] 1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+        "review": "MOCK-UNVERIFIED\nNo real review happened. This is not a PASS.",
+        "evolve": "",
+    }.get(kind, "[MOCK] notes: prefer the standard library first.")
 
 
 def _gemini(system, prompt):
+    key = os.environ.get("GEMINI_API_KEY")
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set in the environment")
     model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     r = requests.post(
         url,
-        headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"},
+        headers={"x-goog-api-key": key, "Content-Type": "application/json"},
         json={"system_instruction": {"parts": [{"text": system}]},
               "contents": [{"parts": [{"text": prompt}]}]},
         timeout=120,
@@ -73,7 +78,9 @@ def _gemini(system, prompt):
 
 def _meta(system, prompt):
     env = os.environ
-    key = env.get("META_API_KEY") or env["TOGETHER_API_KEY"]
+    key = env.get("META_API_KEY") or env.get("TOGETHER_API_KEY")
+    if not key:
+        raise RuntimeError("META_API_KEY or TOGETHER_API_KEY is not set in the environment")
     base, model = "https://api.together.xyz/v1", "meta-llama/Llama-3.3-70B-Instruct-Turbo"
     base = env.get("META_BASE_URL", base)
     model = env.get("META_MODEL", model)
@@ -91,6 +98,7 @@ def _meta(system, prompt):
 class Router:
     def __init__(self, mode=None):
         env = os.environ
+        self.last_mock = False
         self.has = {
             "gemini": bool(env.get("GEMINI_API_KEY")),
             "meta": bool(env.get("META_API_KEY") or env.get("TOGETHER_API_KEY")),
@@ -100,11 +108,9 @@ class Router:
             print(f"! وضع غير معروف {self.mode} -> mock")
             self.mode = "mock"
         if self.mode in ("gemini", "meta") and not self.has[self.mode]:
-            print(f"! مفتاح {self.mode} مش موجود -> رجعت لوضع mock")
-            self.mode = "mock"
+            sys.exit(f"خطأ: الوضع {self.mode} يحتاج مفتاحا في متغيرات البيئة (GEMINI_API_KEY أو META_API_KEY/TOGETHER_API_KEY). لا رجوع صامت لوضع mock.")
         if self.mode == "hybrid" and not any(self.has.values()):
-            print("! مفيش مفاتيح -> رجعت لوضع mock")
-            self.mode = "mock"
+            sys.exit("خطأ: الوضع hybrid يحتاج مفتاحا واحدا على الأقل في متغيرات البيئة.")
         print(f"الوضع الحالي: {self.mode}")
 
     def pick(self, kind):
@@ -117,74 +123,24 @@ class Router:
 
     def ask(self, kind, system, prompt):
         backend = self.pick(kind)
+        self.last_mock = backend == "mock"
         try:
             if backend == "gemini":
                 return _gemini(system, prompt)
             if backend == "meta":
                 return _meta(system, prompt)
         except Exception as e:  # شبكة، مفتاح غلط، حد استخدام...
-            print(f"   ! {backend} فشل ({type(e).__name__}) -> mock")
+            print(f"   ! {backend} فشل ({type(e).__name__}) -> ناتج وهمي موسوم MOCK")
+        self.last_mock = True
         return _mock(kind)
 
 
 # ---------- الأدوات المكتوبة ----------
-# تنبيه: الفحص ده طبقة أمان مش sandbox كامل. الحماية الفعلية هي سؤال y/n قبل التشغيل.
-BANNED_MODULES = {"subprocess", "ctypes", "pty"}
-BANNED_CALLS = {"eval", "exec", "compile", "__import__", "os.system", "os.popen",
-                "os.remove", "os.rmdir", "os.unlink", "shutil.rmtree"}
-BANNED_FROM = {"os": {"system", "popen", "remove", "rmdir", "unlink"}, "shutil": {"rmtree"}}
-BANNED_METHODS = {"write_text", "write_bytes", "unlink", "rmdir", "rmtree"}
-
-
+# تنبيه: الفحص (swarm_security.check_code) قائمة سماح وطبقة دفاع، مش sandbox.
+# الحماية الفعلية: سؤال y/n قبل التشغيل + حاوية معزولة (SWARM_SECURITY_AR.md).
 def extract_code(text):
     m = re.search(r"```(?:python)?\s*\n(.*?)```", text, re.S | re.I)
     return (m.group(1) if m else text).strip()
-
-
-def _name(node):
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        left = _name(node.value)
-        return f"{left}.{node.attr}" if left else node.attr
-    return ""
-
-
-def check_code(code):
-    """يرجع نص المشكلة، أو None لو الكود سليم."""
-    try:
-        tree = ast.parse(code)
-    except SyntaxError as e:
-        return f"syntax error: {e}"
-    errors, bad_names = [], set()
-    if not any(isinstance(n, ast.FunctionDef) and n.name == "run" for n in tree.body):
-        errors.append("missing synchronous run() function")
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Import):
-            for a in n.names:
-                if a.name.split(".")[0] in BANNED_MODULES:
-                    errors.append(f"blocked import: {a.name}")
-                    bad_names.add(a.asname or a.name.split(".")[0])
-        elif isinstance(n, ast.ImportFrom):
-            mod = n.module or ""
-            for a in n.names:
-                if mod.split(".")[0] in BANNED_MODULES or a.name in BANNED_FROM.get(mod, ()):
-                    errors.append(f"blocked import: from {mod} import {a.name}")
-                    bad_names.add(a.asname or a.name)
-    for n in ast.walk(tree):
-        if not isinstance(n, ast.Call):
-            continue
-        name = _name(n.func)
-        if name in BANNED_CALLS or (name and name.split(".")[0] in bad_names):
-            errors.append(f"blocked call: {name}")
-        if isinstance(n.func, ast.Attribute) and n.func.attr in BANNED_METHODS:
-            errors.append(f"blocked method: {n.func.attr}")
-        if name == "open":
-            mode = n.args[1] if len(n.args) > 1 else next(
-                (k.value for k in n.keywords if k.arg == "mode"), None)
-            if isinstance(mode, ast.Constant) and isinstance(mode.value, str) and set("wax+") & set(mode.value):
-                errors.append("blocked: open() for writing")
-    return "; ".join(dict.fromkeys(errors)) or None
 
 
 def save_tool(ws, task, code):
@@ -198,7 +154,7 @@ def save_tool(ws, task, code):
 
 
 def run_tool(path):
-    if os.environ.get("SWARM_AUTORUN") != "1":
+    if not autorun_enabled():
         try:
             ok = input(f"   تشغيل {path.name}؟ (y/n): ").strip().lower() == "y"
         except EOFError:
@@ -229,10 +185,13 @@ class Agent:
 
     def work(self, kind, prompt):
         out = self.router.ask(kind, self.system, prompt)
-        entry = {"time": time.strftime("%Y-%m-%d %H:%M"), "in": prompt[:120], "out": out[:200]}
+        self.last_mock = self.router.last_mock
+        tag = "[MOCK] " if self.last_mock and not out.startswith("[MOCK]") else ""
+        entry = {"time": time.strftime("%Y-%m-%d %H:%M"), "in": prompt[:120], "out": tag + out[:200],
+                 "mock": self.last_mock}
         self.mem["history"] = (self.mem["history"] + [entry])[-20:]
         self.mem["done"] += 1
-        if self.mem["done"] % self.evolve_every == 0:
+        if self.mem["done"] % self.evolve_every == 0 and not self.last_mock:
             self.evolve()
         jsave(self.path, self.mem)
         return out
@@ -243,7 +202,7 @@ class Agent:
             "evolve", "You improve AI agent instructions.",
             f"Role: {self.role}\nCurrent lessons: {self.mem['lessons']}\nRecent work:\n{recent}\n"
             "Write the updated lessons, at most 5 short lines, nothing else.")
-        if new.strip():
+        if new.strip() and not self.router.last_mock:
             # الدور الأساسي ثابت، والتطور بيحصل في الدروس فقط (يمنع انحراف الأجنت).
             self.mem["lessons"] = new.strip()[:800]
             self.mem["version"] = round(self.mem["version"] + 0.1, 1)
@@ -263,6 +222,7 @@ class Swarm:
         self.board = jload(self.board_path, [])
         self.state = jload(self.ver_path, {"swarm_version": 1.0, "tasks_done": 0})
         self.results = []
+        self.mock_used = False
 
     def post(self, who, content):
         self.board = (self.board + [{"from": who, "time": time.strftime("%H:%M:%S"), "content": content[:500]}])[-50:]
@@ -274,11 +234,14 @@ class Swarm:
             return default
         print(f"   • {name}...")
         out = agent.work(kind, prompt)
-        self.post(name, out)
+        if agent.last_mock:
+            self.mock_used = True
+        self.post(name, ("[MOCK] " if agent.last_mock and not out.startswith("[MOCK]") else "") + out)
         return out
 
     def run_one(self, task):
         print(f"\n=== المهمة: {task}")
+        self.mock_used = False
         plan = self.step("Architect", "plan", f"Task: {task}")
         notes = self.step("Researcher", "text", f"Task: {task}\nPlan:\n{plan}")
         ctx = f"Task: {task}\nPlan:\n{plan}\nNotes:\n{notes}"
@@ -288,11 +251,13 @@ class Swarm:
             code = extract_code(self.step("Coder", "code", ctx + f"\nYour previous code was rejected: {problem}. Fix it."))
             problem = check_code(code)
 
-        review, out, fname = "PASS (no tester)", "", ""
+        review, out, fname = "UNREVIEWED (no tester)", "", ""
         status = f"rejected: {problem}" if problem else ""
         if not problem:
             review = self.step("Tester", "review", f"Task: {task}\nCode:\n{code}", review)
-            if review.strip().upper().startswith("PASS"):
+            if self.mock_used:
+                status = "mock-unverified (not saved, not run)"
+            elif review.strip().upper().startswith("PASS"):
                 path = save_tool(self.ws, task, code)
                 fname, status = path.name, "saved"
                 out = run_tool(path)
@@ -300,7 +265,8 @@ class Swarm:
                 status = "failed review"
         self.step("Evolver", "text", f"Task: {task}\nStatus: {status}\nReview: {review[:200]}\nOutput: {out[:200]}")
         print(f"   النتيجة: {status} {fname} {out[:80]}")
-        self.results.append({"task": task, "status": status, "tool": fname, "output": out})
+        self.results.append({"task": task, "status": status, "tool": fname, "output": out,
+                             "mock": self.mock_used})
 
         self.state["tasks_done"] += 1
         if self.state["tasks_done"] % 3 == 0:
@@ -313,7 +279,7 @@ class Swarm:
             self.run_one(t)
         lines = ["# نتائج التشغيل\n"]
         for r in self.results:
-            lines.append(f"- **{r['task']}** -> {r['status']} {r['tool']}\n  output: {r['output']}")
+            lines.append(f"- {'[MOCK] ' if r.get('mock') else ''}**{r['task']}** -> {r['status']} {r['tool']}\n  output: {r['output']}")
         (self.ws / "RESULTS.md").write_text("\n".join(lines), encoding="utf-8")
         print(f"\nتم. الملفات في: {self.ws}/  (RESULTS.md, tools/, memory/, blackboard.json)")
 
@@ -334,4 +300,3 @@ if __name__ == "__main__":
     tasks = [a for a in args if a != "--single"] or DEFAULT_TASKS
     ws = os.environ.get("SWARM_WORKSPACE", "swarm_final_workspace")
     Swarm(ws, agents=("Coder",) if single else ("Architect", "Researcher", "Coder", "Tester", "Evolver")).run(tasks)
-

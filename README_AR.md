@@ -63,4 +63,63 @@ npm test
 
 يشغّل الاختبارات المدمجة عبر `node --test`: إعداد الوكيل، صياغة الواجهة، أدوات workspace والذاكرة، بوابات الموافقة، حظر عناوين الشبكات الداخلية، وHTTP/PWA وتسجيل الدخول. الاختبارات لا تحتاج مفتاح API ولا ترسل طلبات إلى OpenAI. لاختبار جلسة Agents API الحقيقية، أضف مفتاحًا صالحًا إلى `.env`، ثم شغّل `npm start` وأرسل رسالة من الواجهة.
 
+## سرب الوكلاء (swarm.finaly.py)
 
+السكربت الفعلي للسرب هو `swarm.finaly.py`. يشغّل خمسة أدوار (Architect وResearcher وCoder وTester وEvolver) تولّد أدوات بايثون صغيرة. الأوضاع عبر `SWARM_MODE`: `mock` (الافتراضي، بلا مفاتيح) أو `gemini` أو `meta` أو `hybrid`.
+
+### فحص الكود بقائمة سماح
+
+الكود المولَّد يمر على `swarm_security.py` قبل أي تشغيل. الفحص بقائمة سماح: كل وحدة أو دالة خارج القائمة مرفوضة، ومنها `importlib` و`getattr` و`open` و`os` و`pathlib`.
+
+تنبيه: هذا طبقة دفاع وليس عزلًا كاملًا. الحماية الحقيقية هي تشغيل السرب داخل حاوية معزولة.
+
+### التأكيد قبل التشغيل
+
+- سؤال `y/n` قبل تشغيل أي أداة هو الافتراضي.
+- المتغير القديم `SWARM_AUTORUN=1` لم يعد يعمل.
+- الإلغاء الوحيد هو `SWARM_AUTORUN_I_UNDERSTAND_THE_RISK=yes`.
+
+تحذير: هذا الإلغاء يشغّل كودًا مولَّدًا من نموذج غير موثوق دون سؤالك. استخدمه فقط داخل الحاوية المعزولة.
+
+### الوضع الوهمي (mock)
+
+الوضع الوهمي يعيد `MOCK-UNVERIFIED`، أي أنه لم تحدث مراجعة حقيقية وهذا ليس نجاحًا. لا يحفظ أداة ولا يشغّلها، ولا تُسجَّل نتائجه كأنها حقيقية.
+
+### المفاتيح
+
+المفاتيح تُقرأ من متغيرات البيئة فقط (`GEMINI_API_KEY` أو `META_API_KEY` أو `TOGETHER_API_KEY`). إذا غاب المفتاح في وضع `gemini` أو `meta` يتوقف التشغيل برسالة واضحة، ولا رجوع صامت إلى `mock`. لا تكتب أي مفتاح في الكود أو الملفات أو سجل git.
+
+مثال تمرير المفتاح من صدفتك دون كتابة قيمته في أي ملف:
+
+```sh
+export GEMINI_API_KEY="ضع_مفتاحك_هنا_في_صدفتك_فقط"
+SWARM_MODE=gemini python swarm.finaly.py
+```
+
+### التشغيل الآمن بحاوية Docker
+
+الشرح الكامل في [SWARM_SECURITY_AR.md](SWARM_SECURITY_AR.md). الأمر المعزول:
+
+```sh
+docker run --rm -it \
+  --network none --read-only --tmpfs /tmp \
+  --cap-drop ALL --security-opt no-new-privileges \
+  --pids-limit 128 --memory 512m --cpus 1 \
+  --user 65534:65534 \
+  -v "$PWD":/app:ro -v swarm_ws:/work -w /app \
+  -e SWARM_WORKSPACE=/work \
+  python:3.11-slim python swarm.finaly.py
+```
+
+هذا الأمر للوضع الوهمي. لنموذج حقيقي احذف `--network none` ومرّر المفتاح بـ`-e GEMINI_API_KEY` مع `-e SWARM_MODE=gemini`، وثبّت `requests` داخل الصورة.
+
+### اختبارات السرب
+
+من جذر المشروع، بعد تثبيت `requests`:
+
+```sh
+pip install requests
+python -m unittest tests/test_swarm_security.py
+```
+
+الاختبارات لا تحتاج أي مفتاح ولا شبكة.
