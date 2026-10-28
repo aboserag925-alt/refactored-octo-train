@@ -274,14 +274,14 @@ async function runLoop(st) {
       if (!t || t.enabled === false) out = "أداة غير متاحة: " + c.name;
       else if (!args) out = "خطأ: المعاملات مش JSON صالح.";
       else {
-        if ((t.risky || (c.name === "fetch_url" && tainted)) && !c.approved) {
+        if ((t.risky || (c.name === "fetch_url" && st.tainted)) && !c.approved) {
           try { t.check && t.check(args); } catch (e) { out = "خطأ: " + e.message; }
           if (out === undefined) {
             st.pending = { id: crypto.randomBytes(6).toString("hex"), tool: c.name, summary: t.summary(args), ts: Date.now() };
             return { pending: { id: st.pending.id, tool: c.name, summary: st.pending.summary } };
           }
         }
-        if (out === undefined) { try { out = String(await t.run(args)).slice(0, 12000); if (t.taints) tainted = true; } catch (e) { out = "خطأ: " + e.message; } }
+        if (out === undefined) { try { out = String(await t.run(args)).slice(0, 12000); if (t.taints) st.tainted = true; } catch (e) { out = "خطأ: " + e.message; } }
       }
       st.trace.push({ tool: c.name, args: short(args) });
       st.calls.shift(); st.input.push({ type: "function_call_output", call_id: c.call_id, output: out });
@@ -294,18 +294,19 @@ async function runLoop(st) {
   }
 }
 
-let current = null, busy = false, tainted = false;
+let current = null, busy = false, sessionTainted = false;
 async function finish(st) {
   busy = true;
   try {
     const out = await runLoop(st);
+    sessionTainted = !!st.tainted;
     if (out.answer !== undefined) {
       writeJson("history.json", [...readJson("history.json", []), { role: "user", content: st.userMsg }, { role: "assistant", content: out.answer }].slice(-MAX_HISTORY));
       current = null;
     } else current = st;
     out.trace = st.trace.splice(0);
     return out;
-  } catch (e) { current = null; throw e; } finally { busy = false; }
+  } catch (e) { sessionTainted = !!st.tainted; current = null; throw e; } finally { busy = false; }
 }
 const pendingInfo = () => current?.pending && Date.now() - current.pending.ts < 30 * 60e3 ? { id: current.pending.id, tool: current.pending.tool, summary: current.pending.summary } : null;
 const conflict = m => Object.assign(new Error(m), { code: 409 });
@@ -362,13 +363,13 @@ const server = http.createServer(async (req, res) => {
 
     if (p === "/api/logout" && req.method === "POST") return reply(res, 200, { ok: true }, { "Set-Cookie": "abu=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" + SECURE });
     if (p === "/api/history" && req.method === "GET") return reply(res, 200, { history: readJson("history.json", []), pending: pendingInfo() });
-    if (p === "/api/reset" && req.method === "POST") { if (busy) throw conflict("فيه مهمة شغالة، استنى لحد ما تخلص."); current = null; tainted = false; writeJson("history.json", []); return reply(res, 200, { ok: true }); }
+    if (p === "/api/reset" && req.method === "POST") { if (busy) throw conflict("فيه مهمة شغالة، استنى لحد ما تخلص."); current = null; sessionTainted = false; writeJson("history.json", []); return reply(res, 200, { ok: true }); }
     if (p === "/api/integrations" && req.method === "GET") return reply(res, 200, { gmail: { configured: !!(GID && GSECRET), connected: gmailConnected(), email: gTok()?.email || "" } });
     if (p === "/api/google/disconnect" && req.method === "POST") {
       if (busy) throw conflict("فيه مهمة شغالة، استنى لحد ما تخلص.");
       const t = gTok();
       if (t?.refresh_token) await fetch(G_REVOKE, { method: "POST", signal: AbortSignal.timeout(10000), headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token: t.refresh_token }) }).catch(() => {});
-      fs.rmSync(path.join(DATA, "google.json"), { force: true }); tainted = false;
+      fs.rmSync(path.join(DATA, "google.json"), { force: true }); sessionTainted = false;
       return reply(res, 200, { ok: true });
     }
     if (p === "/api/approve" && req.method === "POST") {
@@ -391,7 +392,7 @@ const server = http.createServer(async (req, res) => {
       if (!takeDaily()) return reply(res, 429, { error: `وصلت للحد اليومي (${DAILY} رسالة). يتجدد بكرة، أو زوّد DAILY_LIMIT في .env.` });
       if (busy) throw conflict("فيه مهمة شغالة، استنى لحد ما تخلص.");
       if (pendingInfo()) throw conflict("فيه إجراء مستني موافقتك. وافق أو ارفض الأول.");
-      return reply(res, 200, await finish({ input: [...readJson("history.json", []), { role: "user", content: message }], calls: [], steps: 0, trace: [], userMsg: message }));
+      return reply(res, 200, await finish({ input: [...readJson("history.json", []), { role: "user", content: message }], calls: [], steps: 0, trace: [], userMsg: message, tainted: sessionTainted }));
     }
     return reply(res, 404, { error: "غير موجود." });
   } catch (e) {
