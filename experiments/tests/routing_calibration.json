@@ -1,0 +1,14 @@
+[
+  {"task": "اكتب سكربت بايثون يحسب مجموع أرقام ملف", "expected_tool": null, "expected_intent": "code"},
+  {"task": "Write a Python function that reverses a string", "expected_tool": null, "expected_intent": "code"},
+  {"task": "الكود يرمي استثناء KeyError عند التشغيل، اكتشف السبب", "expected_tool": null, "expected_intent": "debug"},
+  {"task": "Fix the crash that happens when the config file is missing", "expected_tool": null, "expected_intent": "debug"},
+  {"task": "ابحث عن أفضل مكتبات معالجة اللغة العربية وقارن بينها", "expected_tool": null, "expected_intent": "research"},
+  {"task": "Compare three vector databases and list their trade-offs", "expected_tool": null, "expected_intent": "research"},
+  {"task": "ضع خطة لتقسيم مشروع المتجر إلى مراحل وخطوات", "expected_tool": null, "expected_intent": "plan"},
+  {"task": "راجع هذا الكود وتحقق من جودته وأمانه", "expected_tool": null, "expected_intent": "test"},
+  {"task": "Summarize this article and extract the key points", "expected_tool": null, "expected_intent": "summarize"},
+  {"task": "حوّل نتائج الأسبوع إلى تقرير منظم", "expected_tool": null, "expected_intent": "report"},
+  {"task": "Parse a CSV file and count rows per category", "expected_tool": null, "expected_intent": "data"},
+  {"task": "ساعدني في تحليل فكرة عامة قبل أن أقرر", "expected_tool": null, "expected_intent": "general"}
+]
