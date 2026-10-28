@@ -1,0 +1,107 @@
+{
+  "version": 1.9,
+  "lessons": "Verify output before answering.\nKeep answers short.\nReuse existing tools when possible.",
+  "history": [
+    {
+      "time": "2026-10-28 05:43",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mo",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:45",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:45",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mock",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:45",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mo",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:53",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:54",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mock",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:54",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mo",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:55",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mock",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mo",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: (لم ",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: (ل",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:57",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:57",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: (لم ",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:00",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: (ل",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:01",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:03",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:03",
+      "in": "Task: بناء أداة تلخيص نصوص\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: mock",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:04",
+      "in": "Task: بناء نظام تقارير يومية\nStatus: saved\nReview: PASS\nMock review: syntax and safety patterns checked only.\nOutput: (ل",
+      "out": "Mock notes: prefer the standard library first."
+    }
+  ],
+  "done": 28
+}

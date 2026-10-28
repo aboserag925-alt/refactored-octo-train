@@ -1,0 +1,18 @@
+{
+  "name": "aboserag-personal-agent",
+  "version": "2.2.0",
+  "private": true,
+  "description": "Abu Siraj personal agent using OpenAI Agents API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0"
+  }
+}

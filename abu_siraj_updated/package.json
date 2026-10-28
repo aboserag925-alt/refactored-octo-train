@@ -1,0 +1,9 @@
+{
+  "name": "abu-siraj",
+  "version": "2.1.0",
+  "private": true,
+  "description": "أبو سراج — إيجنت شخصي بالعربية بأدوات وحلقة تنفيذ وموافقة قبل أي تغيير",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=20" }
+}

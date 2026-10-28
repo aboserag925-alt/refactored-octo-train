@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10141d">
+<title>أبو سراج</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1118;--panel:#151c27;--line:#2b3545;--gold:#d7b56d;--muted:#a8b3c4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a2433,var(--bg) 55%);color:#f5f7fb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:900px;margin:auto;padding:22px 14px 30px}header{padding:18px 4px 20px}.eyebrow{color:var(--gold);font-size:13px}h1{margin:8px 0;font-size:clamp(25px,5vw,36px)}p{color:var(--muted);line-height:1.8}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#111722;border-radius:999px;padding:7px 11px;font-size:12px;color:#cbd5e1}.dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.panel{border:1px solid var(--line);background:rgba(21,28,39,.94);border-radius:18px;padding:16px;box-shadow:0 12px 35px #0003}
+#messages{display:flex;flex-direction:column;gap:12px;min-height:210px;max-height:52vh;overflow:auto;padding:4px 0 14px}.msg{border:1px solid var(--line);border-radius:14px;padding:12px 14px;white-space:pre-wrap;line-height:1.75;overflow-wrap:anywhere}.user{background:#202a38;align-self:flex-start;max-width:92%}.assistant{background:#101722;align-self:stretch}.label{color:var(--gold);font-size:12px;margin-bottom:4px}
+textarea{display:block;width:100%;min-height:105px;resize:vertical;border:1px solid #3a4658;border-radius:13px;background:#0d131d;color:#fff;padding:13px;font:inherit;outline:none}textarea:focus{border-color:var(--gold)}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}#send{background:var(--gold);color:#151515}#send:disabled{opacity:.55;cursor:wait}#clear,#logout,#gmail{background:#263142;color:#e9eef7}[hidden]{display:none!important}.trace{font-size:12px;color:var(--muted);padding:0 6px;overflow-wrap:anywhere}.pending{border-color:var(--gold)}.pending pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;color:#e7edf7;font:13px ui-monospace,monospace;direction:ltr;text-align:left}.ok{background:var(--gold);color:#151515}.no{background:#263142;color:#e9eef7}input{display:block;width:100%;border:1px solid #3a4658;border-radius:13px;background:#0d131d;color:#fff;padding:13px;font:inherit;outline:none}input:focus{border-color:var(--gold)}#loginBtn{background:var(--gold);color:#151515}.note{font-size:12px;margin-top:12px}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px}.example{background:#182231;color:#dbe4f2;border:1px solid var(--line);padding:8px 10px;border-radius:999px;font-size:12px}footer{text-align:center;font-size:12px;color:#8793a5;padding-top:16px}
+@media(max-width:520px){main{padding:12px 10px 22px}.panel{padding:12px}#messages{max-height:48vh}}
+</style></head>
+<body><main>
+<header><div class="eyebrow">V2.0 · إيجنت بأدوات</div><h1>أبو سراج</h1>
+<p>اكتب المهمة بالمصري أو بالعربية. بيخطط وينفّذ بنفسه: يبحث ويقرأ صفحات ويكتب ملفات ويفتكر تفضيلاتك. أي كتابة أو تشغيل بيستنى موافقتك.</p>
+<span class="status"><span class="dot"></span><span id="status">جاهز — محادثة وبحث ويب</span></span></header>
+<div class="examples">
+<button class="example" data-prompt="حلّل التعليق ده (سؤال / نقد / هزار / عميل غاضب؟) واقترح أحسن رد:
+">حلّل تعليق</button>
+<button class="example" data-prompt="قسّم المهمة التالية إلى خطوات عملية، وحدد المخاطر وما يحتاج موافقتي.">تقسيم مهمة</button>
+<button class="example" data-prompt="ابحث في الويب عن أفضل 3 طرق لتأمين إيجنت شخصي، واكتب الخلاصة في ملف security.md.">بحث وحفظ في ملف</button>
+</div>
+<section class="panel" id="login" hidden><form id="loginForm"><p>اكتب كلمة السر عشان تدخل.</p><input id="pw" type="password" autocomplete="current-password" placeholder="كلمة السر" required><div class="actions"><button id="loginBtn" type="submit">دخول</button></div><p class="note" id="loginErr"></p></form></section>
+<section class="panel" id="app" hidden><div id="messages" aria-live="polite"></div>
+<form id="form"><textarea id="task" placeholder="مثال: ابحث عن طريقة آمنة لنشر مشروعي وخطط للخطوات..." required></textarea>
+<div class="actions"><button id="send" type="submit">إرسال المهمة</button><button id="clear" type="button">محادثة جديدة</button><button id="gmail" type="button">ربط جيميل</button><button id="logout" type="button">خروج</button></div></form>
+<p class="note">المحادثة والملاحظات محفوظة على الخادم. الملفات في مجلد workspace فقط، وأي كتابة بتحتاج موافقتك.</p></section>
+<footer>أبو سراج V2.0</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id),messages=$('messages'),task=$('task'),sendBtn=$('send'),statusEl=$('status'),form=$('form'),loginBox=$('login'),app=$('app'),pw=$('pw'),loginErr=$('loginErr');
+const READY='جاهز',GREETING='أهلًا بيك يا سراج. قولّي المهمة وأنا أنفّذها.';let waiting=false;
+const scroll=()=>{messages.scrollTop=messages.scrollHeight};
+function addMessage(role,content){const n=document.createElement('div');n.className='msg '+role;const l=document.createElement('div');l.className='label';l.textContent=role==='user'?'أنت':'أبو سراج';const b=document.createElement('div');b.textContent=content;n.append(l,b);messages.appendChild(n);scroll()}
+function addTrace(t){const n=document.createElement('div');n.className='trace';n.textContent='🔧 '+t.tool+' '+t.args;messages.appendChild(n);scroll()}
+function addPending(p){const n=document.createElement('div');n.className='msg assistant pending';const l=document.createElement('div');l.className='label';l.textContent='محتاج موافقتك: '+p.tool;const pre=document.createElement('pre');pre.textContent=p.summary;const row=document.createElement('div');row.className='actions';const ok=document.createElement('button'),no=document.createElement('button');ok.className='ok';ok.textContent='وافق ونفّذ';no.className='no';no.textContent='ارفض';
+const decide=v=>{ok.disabled=no.disabled=true;n.classList.remove('pending');l.textContent=(v?'اتوافق: ':'اترفض: ')+p.tool;call('/api/approve',{approve:v})};ok.onclick=()=>decide(true);no.onclick=()=>decide(false);row.append(ok,no);n.append(l,pre,row);messages.appendChild(n);scroll()}
+function handle(d){(d.trace||[]).forEach(addTrace);waiting=!!d.pending;if(d.pending)addPending(d.pending);if(d.answer!==undefined)addMessage('assistant',d.answer)}
+function show(ok){loginBox.hidden=ok;app.hidden=!ok;statusEl.textContent=ok?READY:'محتاج تسجيل دخول';(ok?task:pw).focus()}
+async function api(path,opts){const r=await fetch(path,opts);let d={};try{d=await r.json()}catch{}return{r,d}}
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+async function call(path,body){sendBtn.disabled=true;statusEl.textContent='بيشتغل...';try{const{r,d}=await post(path,body);if(r.status===401)return show(false);if(!r.ok)throw new Error(d.error||'تعذر تنفيذ الطلب');handle(d);statusEl.textContent=waiting?'مستني موافقتك':READY}catch(err){addMessage('assistant','مشكلة: '+err.message);statusEl.textContent='فيه مشكلة'}finally{sendBtn.disabled=waiting;task.focus()}}
+async function init(){const{r,d}=await api('/api/history');if(r.status===401)return show(false);show(true);loadInt();messages.replaceChildren();if(!d.history||!d.history.length)addMessage('assistant',GREETING);else d.history.forEach(m=>addMessage(m.role,m.content));if(d.pending){waiting=true;sendBtn.disabled=true;addPending(d.pending);statusEl.textContent='مستني موافقتك'}}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();loginErr.textContent='';const{r,d}=await post('/api/login',{password:pw.value});if(!r.ok){loginErr.textContent=d.error||'تعذر الدخول';return}pw.value='';init()});
+form.addEventListener('submit',e=>{e.preventDefault();const message=task.value.trim();if(!message||sendBtn.disabled)return;addMessage('user',message);task.value='';call('/api/chat',{message})});
+document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{task.value=b.dataset.prompt;task.focus()}));
+$('clear').addEventListener('click',async()=>{await post('/api/reset');waiting=false;sendBtn.disabled=false;messages.replaceChildren();addMessage('assistant','بدأنا محادثة جديدة. اكتب المهمة.');statusEl.textContent=READY});
+$('logout').addEventListener('click',async()=>{await post('/api/logout');show(false)});
+async function loadInt(){const{d}=await api('/api/integrations');const g=d.gmail||{},b=$('gmail');b.textContent=g.connected?'جيميل ✓':'ربط جيميل';b.title=g.email||'';b.onclick=async()=>{if(g.connected){if(confirm('تفصل جيميل؟')){await post('/api/google/disconnect');loadInt()}}else if(!g.configured)alert('ضيف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET في .env الأول (الشرح في GMAIL_SETUP_AR.md)');else location.href='/auth/google'}}
+// التحقق الدوري من اتصال الخادم وإعادة الاتصال التلقائي
+async function checkServerHealth() {
+    try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+            if (statusEl.textContent.includes('غير متاح') || statusEl.textContent.includes('مشكلة في الاتصال')) {
+                statusEl.textContent = READY;
+            }
+        } else {
+            statusEl.textContent = 'الخادم غير متاح (إعادة محاولة...)';
+        }
+    } catch {
+        statusEl.textContent = 'الخادم غير متاح (إعادة محاولة...)';
+    }
+}
+setInterval(checkServerHealth, 5000);
+init();
+</script></body></html>

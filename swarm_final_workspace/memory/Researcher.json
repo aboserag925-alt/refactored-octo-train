@@ -1,0 +1,107 @@
+{
+  "version": 1.9,
+  "lessons": "Verify output before answering.\nKeep answers short.\nReuse existing tools when possible.",
+  "history": [
+    {
+      "time": "2026-10-28 05:44",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:45",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:45",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:53",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:54",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:54",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:55",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:55",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:56",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:57",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:57",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 05:57",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:01",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:01",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:03",
+      "in": "Task: بناء أداة تجيب سعر الدولار\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:03",
+      "in": "Task: بناء أداة تلخيص نصوص\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    },
+    {
+      "time": "2026-10-28 06:03",
+      "in": "Task: بناء نظام تقارير يومية\nPlan:\n1. Understand the goal\n2. Pick libraries\n3. Write run()\n4. Test it",
+      "out": "Mock notes: prefer the standard library first."
+    }
+  ],
+  "done": 29
+}

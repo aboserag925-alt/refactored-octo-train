@@ -1,0 +1,11 @@
+.env
+node_modules/
+.agent-state.json
+data/
+workspace/*
+!workspace/.gitkeep
+.local-tools-android/
+platform-tools-download.zip
+*.apk
+.DS_Store
+*.zip
