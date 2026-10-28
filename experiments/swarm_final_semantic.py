@@ -1036,7 +1036,7 @@ class Agent:
 class Swarm:
     def __init__(
         self,
-        workspace: Path | str = "swarm_final_workspace",
+        workspace: Path | str,
         agents: tuple[str, ...] = ("Architect", "Researcher", "Coder", "Tester", "Evolver"),
         mode: Optional[str] = None,
     ):
