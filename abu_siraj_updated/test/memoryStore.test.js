@@ -123,3 +123,12 @@ test("الكتابة الذرية: لا يبقى ملف مؤقت", () => {
   assert.deepEqual(left, []);
   assert.doesNotThrow(() => JSON.parse(fs.readFileSync(file, "utf8")));
 });
+
+test("remove على ملف قديم بلا meta لا يعيد استخدام أعلى رقم", () => {
+  const { file } = tmp();
+  fs.writeFileSync(file, JSON.stringify([{ id: 4, text: "قديمة أ", ts: 1 }, { id: 7, text: "قديمة ب", ts: 2 }]));
+  assert.equal(fs.existsSync(file + ".meta"), false);
+  const m = createMemoryStore(file);
+  assert.equal(m.remove(7), true);
+  assert.equal(m.add({ text: "جديدة بعد الحذف" }).note.id, 8);
+});
