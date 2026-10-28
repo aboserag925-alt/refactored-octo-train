@@ -125,6 +125,9 @@ function createMemoryStore(file) {
     const notes = load();
     const next = notes.filter(n => n.id !== Number(id));
     if (next.length === notes.length) return false;
+    // نحفظ العدّاد قبل الحذف حتى لا يُعاد استخدام أعلى رقم في ملف قديم بلا meta.
+    const maxId = notes.reduce((m, n) => Math.max(m, n.id), 0);
+    atomicWrite(metaFile, { nextId: Math.max(readCounter(), maxId + 1) });
     atomicWrite(file, next);
     return true;
   }
